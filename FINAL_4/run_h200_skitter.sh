@@ -12,6 +12,8 @@ ARTIFACT_BASE="artifacts"
 ARTIFACT_DIR="${ARTIFACT_BASE}/skitter_${RUN_ID}"
 LOG_FILE="${ARTIFACT_DIR}/run_as-skitter_gpu.log"
 OUT_FILE="${ARTIFACT_DIR}/results_as-skitter_gpu.txt"
+VENV_DIR=".venv_rapids"
+PYTHON_BIN="${VENV_DIR}/bin/python"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -43,12 +45,17 @@ echo "Artifact directory: ${ARTIFACT_DIR}"
 echo "Started at: $(date -Is)" | tee "${ARTIFACT_DIR}/STARTED.txt"
 
 echo "[1/5] Installing Python dependencies for GPU run ..."
-python3 -m pip install --upgrade pip
-python3 -m pip install --extra-index-url=https://pypi.nvidia.com \
-  cudf-cu12 cugraph-cu12 rmm-cu12 cupy-cuda12x pynvml pandas
+if [[ ! -d "${VENV_DIR}" ]]; then
+  python3 -m venv "${VENV_DIR}"
+fi
+
+"${PYTHON_BIN}" -m pip install --upgrade pip
+"${PYTHON_BIN}" -m pip install --extra-index-url=https://pypi.nvidia.com \
+  cudf-cu12==26.2.* cugraph-cu12==26.2.* rmm-cu12==26.2.* cupy-cuda12x \
+  nvidia-nvjitlink-cu12==12.9.86.* pynvml pandas
 
 echo "[2/5] Configuring RAPIDS/CUDA shared-library paths ..."
-RAPIDS_LIB_DIRS=$(python3 - <<'PY'
+RAPIDS_LIB_DIRS=$("${PYTHON_BIN}" - <<'PY'
 import glob
 import os
 import site
@@ -111,14 +118,14 @@ else
 fi
 
 echo "Checking for libcusolver availability ..."
-python3 - <<'PY'
+"${PYTHON_BIN}" - <<'PY'
 import ctypes.util
 path = ctypes.util.find_library("cusolver")
 print(f"find_library('cusolver') => {path}")
 PY
 
 echo "Verifying cudf/cugraph import ..."
-python3 - <<'PY'
+"${PYTHON_BIN}" - <<'PY'
 import cudf
 import cugraph
 print("cudf/cugraph import OK")
@@ -133,9 +140,9 @@ fi
 echo "[4/5] Running exact betweenness centrality on GPU ..."
 set +e
 if [[ -n "$TIMEOUT_HOURS" ]]; then
-  timeout "${TIMEOUT_HOURS}h" python3 skitter_gpu_h200.py --input as-skitter.txt --top 20 --output "${OUT_FILE}" 2>&1 | tee "${LOG_FILE}"
+  timeout "${TIMEOUT_HOURS}h" "${PYTHON_BIN}" skitter_gpu_h200.py --input as-skitter.txt --top 20 --output "${OUT_FILE}" 2>&1 | tee "${LOG_FILE}"
 else
-  python3 skitter_gpu_h200.py --input as-skitter.txt --top 20 --output "${OUT_FILE}" 2>&1 | tee "${LOG_FILE}"
+  "${PYTHON_BIN}" skitter_gpu_h200.py --input as-skitter.txt --top 20 --output "${OUT_FILE}" 2>&1 | tee "${LOG_FILE}"
 fi
 EXIT_CODE=$?
 set -e
