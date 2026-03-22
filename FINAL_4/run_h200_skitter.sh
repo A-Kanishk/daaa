@@ -42,18 +42,68 @@ echo "Run ID: ${RUN_ID}"
 echo "Artifact directory: ${ARTIFACT_DIR}"
 echo "Started at: $(date -Is)" | tee "${ARTIFACT_DIR}/STARTED.txt"
 
-echo "[1/4] Installing Python dependencies for GPU run ..."
+echo "[1/5] Installing Python dependencies for GPU run ..."
 python3 -m pip install --upgrade pip
 python3 -m pip install --extra-index-url=https://pypi.nvidia.com \
   cudf-cu12 cugraph-cu12 rmm-cu12 cupy-cuda12x pynvml pandas
 
-echo "[2/4] Downloading as-skitter if missing ..."
+echo "[2/5] Configuring RAPIDS shared-library paths ..."
+RAPIDS_LIB_DIRS=$(python3 - <<'PY'
+import glob
+import os
+import site
+
+roots = []
+roots.extend(site.getsitepackages())
+user_site = site.getusersitepackages()
+if isinstance(user_site, str):
+    roots.append(user_site)
+
+patterns = [
+    "**/libcugraph.so",
+    "**/libcudf.so",
+    "**/librmm.so",
+    "**/libucxx.so",
+    "**/libraft.so",
+]
+
+dirs = []
+seen = set()
+for root in roots:
+    if not root or not os.path.exists(root):
+        continue
+    for pattern in patterns:
+        for path in glob.glob(os.path.join(root, pattern), recursive=True):
+            directory = os.path.dirname(path)
+            if directory not in seen:
+                seen.add(directory)
+                dirs.append(directory)
+
+print(":".join(dirs))
+PY
+)
+
+if [[ -n "${RAPIDS_LIB_DIRS}" ]]; then
+  export LD_LIBRARY_PATH="${RAPIDS_LIB_DIRS}:${LD_LIBRARY_PATH:-}"
+  echo "Configured LD_LIBRARY_PATH with RAPIDS libs."
+else
+  echo "WARNING: Could not auto-detect RAPIDS .so directories."
+fi
+
+echo "Verifying cudf/cugraph import ..."
+python3 - <<'PY'
+import cudf
+import cugraph
+print("cudf/cugraph import OK")
+PY
+
+echo "[3/5] Downloading as-skitter if missing ..."
 if [[ ! -f as-skitter.txt ]]; then
   wget -q https://snap.stanford.edu/data/as-skitter.txt.gz -O as-skitter.txt.gz
   gunzip -f as-skitter.txt.gz
 fi
 
-echo "[3/4] Running exact betweenness centrality on GPU ..."
+echo "[4/5] Running exact betweenness centrality on GPU ..."
 set +e
 if [[ -n "$TIMEOUT_HOURS" ]]; then
   timeout "${TIMEOUT_HOURS}h" python3 skitter_gpu_h200.py --input as-skitter.txt --top 20 --output "${OUT_FILE}" 2>&1 | tee "${LOG_FILE}"
@@ -86,7 +136,7 @@ fi
 cp -f "${OUT_FILE}" results_as-skitter_gpu.txt
 cp -f "${LOG_FILE}" run_as-skitter_gpu.log
 
-echo "[4/4] Done"
+echo "[5/5] Done"
 echo "  - ${OUT_FILE}"
 echo "  - ${LOG_FILE}"
 echo "  - results_as-skitter_gpu.txt (latest copy)"
