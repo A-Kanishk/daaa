@@ -47,7 +47,7 @@ python3 -m pip install --upgrade pip
 python3 -m pip install --extra-index-url=https://pypi.nvidia.com \
   cudf-cu12 cugraph-cu12 rmm-cu12 cupy-cuda12x pynvml pandas
 
-echo "[2/5] Configuring RAPIDS shared-library paths ..."
+echo "[2/5] Configuring RAPIDS/CUDA shared-library paths ..."
 RAPIDS_LIB_DIRS=$(python3 - <<'PY'
 import glob
 import os
@@ -65,6 +65,12 @@ patterns = [
     "**/librmm.so",
     "**/libucxx.so",
     "**/libraft.so",
+  "**/libcusolver.so*",
+  "**/libcublas.so*",
+  "**/libcusparse.so*",
+  "**/libcurand.so*",
+  "**/libnvrtc.so*",
+  "**/libcudart.so*",
 ]
 
 dirs = []
@@ -79,16 +85,37 @@ for root in roots:
                 seen.add(directory)
                 dirs.append(directory)
 
+        extra_roots = [
+          "/usr/local/cuda/lib64",
+          "/usr/lib/x86_64-linux-gnu",
+          "/home/zeus/miniconda3/envs/cloudspace/lib",
+        ]
+        for root in extra_roots:
+          if not os.path.exists(root):
+            continue
+          for pattern in ["libcusolver.so*", "libcublas.so*", "libcusparse.so*", "libcurand.so*", "libnvrtc.so*", "libcudart.so*"]:
+            matches = glob.glob(os.path.join(root, pattern))
+            if matches and root not in seen:
+              seen.add(root)
+              dirs.append(root)
+
 print(":".join(dirs))
 PY
 )
 
 if [[ -n "${RAPIDS_LIB_DIRS}" ]]; then
   export LD_LIBRARY_PATH="${RAPIDS_LIB_DIRS}:${LD_LIBRARY_PATH:-}"
-  echo "Configured LD_LIBRARY_PATH with RAPIDS libs."
+  echo "Configured LD_LIBRARY_PATH with RAPIDS/CUDA libs."
 else
-  echo "WARNING: Could not auto-detect RAPIDS .so directories."
+  echo "WARNING: Could not auto-detect RAPIDS/CUDA .so directories."
 fi
+
+echo "Checking for libcusolver availability ..."
+python3 - <<'PY'
+import ctypes.util
+path = ctypes.util.find_library("cusolver")
+print(f"find_library('cusolver') => {path}")
+PY
 
 echo "Verifying cudf/cugraph import ..."
 python3 - <<'PY'
