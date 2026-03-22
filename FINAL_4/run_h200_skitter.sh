@@ -12,8 +12,7 @@ ARTIFACT_BASE="artifacts"
 ARTIFACT_DIR="${ARTIFACT_BASE}/skitter_${RUN_ID}"
 LOG_FILE="${ARTIFACT_DIR}/run_as-skitter_gpu.log"
 OUT_FILE="${ARTIFACT_DIR}/results_as-skitter_gpu.txt"
-VENV_DIR=".venv_rapids"
-PYTHON_BIN="${VENV_DIR}/bin/python"
+PYTHON_BIN="python3"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -45,10 +44,6 @@ echo "Artifact directory: ${ARTIFACT_DIR}"
 echo "Started at: $(date -Is)" | tee "${ARTIFACT_DIR}/STARTED.txt"
 
 echo "[1/5] Installing Python dependencies for GPU run ..."
-if [[ ! -d "${VENV_DIR}" ]]; then
-  python3 -m venv "${VENV_DIR}"
-fi
-
 "${PYTHON_BIN}" -m pip install --upgrade pip
 "${PYTHON_BIN}" -m pip install --extra-index-url=https://pypi.nvidia.com \
   cudf-cu12==26.2.* cugraph-cu12==26.2.* rmm-cu12==26.2.* cupy-cuda12x \
@@ -72,6 +67,7 @@ patterns = [
     "**/librmm.so",
     "**/libucxx.so",
     "**/libraft.so",
+  "**/libnvJitLink.so*",
   "**/libcusolver.so*",
   "**/libcublas.so*",
   "**/libcusparse.so*",
@@ -93,6 +89,12 @@ for root in roots:
                 dirs.append(directory)
 
         extra_roots = [
+          "/home/zeus/miniconda3/envs/cloudspace/lib/python3.12/site-packages/nvidia/nvjitlink/lib",
+          "/home/zeus/miniconda3/envs/cloudspace/lib/python3.12/site-packages/nvidia/cusolver/lib",
+          "/home/zeus/miniconda3/envs/cloudspace/lib/python3.12/site-packages/nvidia/cusparse/lib",
+          "/home/zeus/miniconda3/envs/cloudspace/lib/python3.12/site-packages/nvidia/cublas/lib",
+          "/home/zeus/miniconda3/envs/cloudspace/lib/python3.12/site-packages/nvidia/curand/lib",
+          "/home/zeus/miniconda3/envs/cloudspace/lib/python3.12/site-packages/nvidia/cuda_runtime/lib",
           "/usr/local/cuda/lib64",
           "/usr/lib/x86_64-linux-gnu",
           "/home/zeus/miniconda3/envs/cloudspace/lib",
