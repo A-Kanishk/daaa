@@ -1,0 +1,90 @@
+Assignment-1
+comment
+5
+5 comments
+Edited Mar 4
+1. Please form a group of 4-5 students.
+2. Read the paper attached.
+3. Implement the algorithm in C/C++.
+4. Execute on large graph and evaluate the performance of your algorithm. (I will be sharing the graph data soon)
+
+Please write your team information in the following spreadsheet (by Feb-20):
+https://docs.google.com/spreadsheets/d/1EuVjuCBQgZyot5p1cQ0z1t5JkzHl0Rkz3shW1wjJ5Ao/edit?usp=sharing
+
+Dataset:
+
+1. https://snap.stanford.edu/data/email-Enron.html
+2. https://snap.stanford.edu/data/as-Skitter.html
+3. https://snap.stanford.edu/data/wiki-Vote.html
+
+Output:
+
+1. Top 20 nodes with their Betweenness centrality scores for each dataset.
+2. Execution time on all three datasets.
+3. Space consumption by the algorithm on all three datasets.
+
+
+Deliverables:
+
+1. Source code of the implementation.
+2. execution script (we will execute the script to generate the output on three datasets).
+3. Report: Include the following 
+        A. team information - name and ID of each student in the team. 
+        B. Individual contribution in the project.
+        C. Output of the program as described before.
+
+Deadline for submission of the assignment: Week next to the Midterm week.
+
+Thanks,
+Apurba
+Points to note: 
+1. Treat all graphs as unweighted and undirected.
+
+Midterm Assignment Submission Form
+Please use this form to submit your final project files and supporting information.
+f20221390@hyderabad.bits-pilani.ac.in Switch account
+ 
+The name, email, and photo associated with your Google account will be recorded when you upload files and submit this form
+* Indicates required question
+Email
+*
+Record f20221390@hyderabad.bits-pilani.ac.in as the email to be included with my response
+Project Title
+*
+Your Full Name (Lead Submitter)
+*
+Email Address for Confirmation
+*
+Team Information (Please write the team members name and id comma seperated)
+*
+Primary Project File Upload (e.g., source code zip, final report PDF, presentation)
+*
+Upload 1 supported file. Max 1 MB.
+Estimated Time Spent on Project (Total duration)
+*
+Hrs
+:
+Min
+:
+Sec
+How would you rate the overall difficulty of this project?
+*
+Very Easy
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+Extremely Difficult
+Check all required components that are included in your submission:
+*
+Final Report/Documentation (PDF) (should be included in the ZIP)
+Source Code/Working Files (ZIP/TAR)
+Link to the datafile that you have preprocessed. (provide in README. Include in ZIP)
+Installation/Run Instructions (script to be executed by the TA) (include in ZIP)
+README  - mention execution instruction of the script, link to the data file. (include in ZIP)

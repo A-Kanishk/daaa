@@ -1,0 +1,20 @@
+# Build outputs
+FINAL_4/brandes
+FINAL_4/*.o
+
+# Large datasets
+FINAL_4/as-skitter.txt
+FINAL_4/email-Enron.txt
+FINAL_4/wiki-Vote.txt
+FINAL_4/*.gz
+
+# Generated results/logs
+FINAL_4/results_*.txt
+FINAL_4/run_as-skitter_gpu.log
+FINAL_4/launcher.log
+FINAL_4/artifacts/
+FINAL_4/skitter_h200_results.tar.gz
+
+# Python cache
+FINAL_4/__pycache__/
+FINAL_4/*.pyc
