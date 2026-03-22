@@ -44,48 +44,60 @@ echo "Artifact directory: ${ARTIFACT_DIR}"
 echo "Started at: $(date -Is)" | tee "${ARTIFACT_DIR}/STARTED.txt"
 
 echo "[1/5] Installing Python dependencies for GPU run ..."
-"${PYTHON_BIN}" -m pip install --upgrade pip
-"${PYTHON_BIN}" -m pip install --extra-index-url=https://pypi.nvidia.com \
-  cupy-cuda12x pynvml pandas
+if "${PYTHON_BIN}" - <<'PY'
+import cudf
+import cugraph
+from rmm._cuda.gpu import getDevice
+_ = getDevice()
+print("Existing RAPIDS runtime is already working")
+PY
+then
+  echo "Reusing existing RAPIDS install (skip reinstall)."
+  RAPIDS_SELECTED="existing"
+else
+  "${PYTHON_BIN}" -m pip install --upgrade pip
+  "${PYTHON_BIN}" -m pip install --extra-index-url=https://pypi.nvidia.com \
+    cupy-cuda12x pynvml pandas
 
-if command -v nvidia-smi >/dev/null 2>&1; then
-  echo "Detected GPU/driver:"
-  nvidia-smi --query-gpu=name,driver_version,cuda_version --format=csv,noheader || true
-fi
-
-RAPIDS_CANDIDATES=("26.2.*" "25.12.*" "25.10.*" "25.08.*")
-RAPIDS_SELECTED=""
-
-for RAPIDS_VER in "${RAPIDS_CANDIDATES[@]}"; do
-  echo "Trying RAPIDS version: ${RAPIDS_VER}"
-  if ! "${PYTHON_BIN}" -m pip install --extra-index-url=https://pypi.nvidia.com \
-      "cudf-cu12==${RAPIDS_VER}" "cugraph-cu12==${RAPIDS_VER}" "rmm-cu12==${RAPIDS_VER}"; then
-    echo "Install failed for RAPIDS ${RAPIDS_VER}, trying older version..."
-    continue
+  if command -v nvidia-smi >/dev/null 2>&1; then
+    echo "Detected GPU/driver:"
+    nvidia-smi --query-gpu=name,driver_version,cuda_version --format=csv,noheader || true
   fi
 
-  if "${PYTHON_BIN}" - <<'PY'
+  RAPIDS_CANDIDATES=("26.2.*" "25.12.*" "25.10.*" "25.08.*")
+  RAPIDS_SELECTED=""
+
+  for RAPIDS_VER in "${RAPIDS_CANDIDATES[@]}"; do
+    echo "Trying RAPIDS version: ${RAPIDS_VER}"
+    if ! "${PYTHON_BIN}" -m pip install --extra-index-url=https://pypi.nvidia.com \
+        "cudf-cu12==${RAPIDS_VER}" "cugraph-cu12==${RAPIDS_VER}" "rmm-cu12==${RAPIDS_VER}"; then
+      echo "Install failed for RAPIDS ${RAPIDS_VER}, trying older version..."
+      continue
+    fi
+
+    if "${PYTHON_BIN}" - <<'PY'
 import cudf
 import cugraph
 from rmm._cuda.gpu import getDevice
 _ = getDevice()
 print("RAPIDS runtime check OK")
 PY
-  then
-    RAPIDS_SELECTED="${RAPIDS_VER}"
-    echo "Selected RAPIDS version: ${RAPIDS_SELECTED}"
-    break
-  else
-    echo "Runtime check failed for RAPIDS ${RAPIDS_VER}, trying older version..."
-  fi
-done
+    then
+      RAPIDS_SELECTED="${RAPIDS_VER}"
+      echo "Selected RAPIDS version: ${RAPIDS_SELECTED}"
+      break
+    else
+      echo "Runtime check failed for RAPIDS ${RAPIDS_VER}, trying older version..."
+    fi
+  done
 
-if [[ -z "${RAPIDS_SELECTED}" ]]; then
-  echo "FAILED" | tee "${ARTIFACT_DIR}/STATUS.txt"
-  echo "Failed at: $(date -Is)" | tee "${ARTIFACT_DIR}/ENDED.txt"
-  echo "No compatible RAPIDS version found for this Studio driver."
-  echo "Please start a new Lightning Studio with newer NVIDIA driver/CUDA support and retry."
-  exit 1
+  if [[ -z "${RAPIDS_SELECTED}" ]]; then
+    echo "FAILED" | tee "${ARTIFACT_DIR}/STATUS.txt"
+    echo "Failed at: $(date -Is)" | tee "${ARTIFACT_DIR}/ENDED.txt"
+    echo "No compatible RAPIDS version found for this Studio driver."
+    echo "Please start a new Lightning Studio with newer NVIDIA driver/CUDA support and retry."
+    exit 1
+  fi
 fi
 
 echo "[2/5] Configuring RAPIDS/CUDA shared-library paths ..."
